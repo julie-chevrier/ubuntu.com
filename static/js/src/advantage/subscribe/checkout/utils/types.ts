@@ -49,6 +49,9 @@ export interface FormValues {
   Description: boolean;
   marketplace: UserSubscriptionMarketplace;
   FreeTrial: string;
+  isTaxSaved: boolean;
+  isCardValid: boolean;
+  isInfoSaved: boolean;
 }
 
 export type marketplace = "canonical-ua" | "canonical-cube" | "blender";
@@ -68,6 +71,7 @@ export interface Product {
   name: string;
   price: {
     value: number;
+    discount?: null | number;
   };
   canBeTrialled?: boolean;
 }

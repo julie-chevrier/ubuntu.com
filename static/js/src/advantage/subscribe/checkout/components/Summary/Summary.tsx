@@ -1,10 +1,11 @@
 import React from "react";
 import { add, format } from "date-fns";
-import { Col, Row } from "@canonical/react-components";
+import { useFormikContext } from "formik";
+import { Col, Row, Spinner } from "@canonical/react-components";
 import { currencyFormatter } from "advantage/react/utils";
-import useGetTaxAmount from "../../hooks/useGetTaxAmount";
+import useCalculate from "../../hooks/useCalculate";
 import usePreview from "../../hooks/usePreview";
-import { Action, Product, TaxInfo } from "../../utils/types";
+import { Action, FormValues, Product, TaxInfo } from "../../utils/types";
 
 const DATE_FORMAT = "dd MMMM yyyy";
 
@@ -15,11 +16,24 @@ type Props = {
 };
 
 function Summary({ quantity, product, action }: Props) {
-  const sanitisedQuanity = Number(quantity) ?? 0;
-  const { data: taxData } = useGetTaxAmount();
-  const { data: preview } = usePreview({ quantity, product, action });
+  const { values } = useFormikContext<FormValues>();
+  const { data: calculate, isFetching: isCalculateFetching } = useCalculate({
+    quantity: quantity,
+    marketplace: product.marketplace,
+    productListingId: product.longId,
+    country: values.country,
+    VATNumber: values.VATNumber,
+    isTaxSaved: values.isTaxSaved,
+  });
 
-  const priceData: TaxInfo | undefined = preview || taxData;
+  const { data: preview, isFetching: isPreviewFetching } = usePreview({
+    quantity,
+    product,
+    action,
+  });
+
+  const isSummaryLoading = isPreviewFetching || isCalculateFetching;
+  const priceData: TaxInfo | undefined = preview || calculate;
 
   const taxAmount = (priceData?.tax ?? 0) / 100;
   const total = (priceData?.total ?? 0) / 100;
@@ -27,27 +41,62 @@ function Summary({ quantity, product, action }: Props) {
   const planType = action !== "offer" ? "Plan type" : "Products";
   const productName =
     action !== "offer" ? product?.name : product?.name.replace(", ", "<br>");
+  const discount =
+    (product?.price?.value * ((product?.price?.discount ?? 0) / 100)) / 100;
+  const defaultTotal = (product?.price?.value * quantity) / 100 - discount;
 
   let totalSection = (
-    <Row>
-      <Col size={4}>
-        <p>Total:</p>
-      </Col>
-      <Col size={8}>
-        <p data-testid="subtotal">
-          <strong>
-            {currencyFormatter.format(
-              ((product?.price?.value ?? 0) * sanitisedQuanity) / 100
-            )}
-          </strong>
-        </p>
-      </Col>
-    </Row>
+    <>
+      {product?.price?.discount && (
+        <>
+          <Row>
+            <Col size={4}>
+              <p>Discount:</p>
+            </Col>
+            <Col size={8}>
+              <p data-testid="discount">
+                <strong>&minus; {currencyFormatter.format(discount)}</strong>
+              </p>
+            </Col>
+          </Row>
+          <hr />
+        </>
+      )}
+      <Row>
+        <Col size={4}>
+          <p>Total:</p>
+        </Col>
+        <Col size={8}>
+          <p data-testid="subtotal">
+            <strong>
+              {priceData
+                ? currencyFormatter.format(total)
+                : currencyFormatter.format(defaultTotal)}
+            </strong>
+          </p>
+        </Col>
+      </Row>
+    </>
   );
 
   if (taxAmount && total) {
     totalSection = (
       <>
+        {product?.price?.discount && (
+          <>
+            <Row>
+              <Col size={4}>
+                <p>Discount:</p>
+              </Col>
+              <Col size={8}>
+                <p data-testid="discount">
+                  <strong>&minus; {currencyFormatter.format(discount)}</strong>
+                </p>
+              </Col>
+            </Row>
+            <hr />
+          </>
+        )}
         {priceData?.end_of_cycle && (
           <>
             <Row>
@@ -88,19 +137,43 @@ function Summary({ quantity, product, action }: Props) {
     );
   } else if (priceData?.end_of_cycle) {
     totalSection = (
-      <Row>
-        <Col size={4}>
-          <p>
-            Total
-            {priceData?.end_of_cycle && " for this period"}
-          </p>
-        </Col>
-        <Col size={8}>
-          <p>
-            <strong>{currencyFormatter.format(total)}</strong>
-          </p>
-        </Col>
-      </Row>
+      <>
+        {action === "offer" && product?.price?.discount && (
+          <>
+            <Row>
+              <Col size={4}>
+                <p>Discount:</p>
+              </Col>
+              <Col size={8}>
+                <p data-testid="discount">
+                  <strong>
+                    &minus;{" "}
+                    {currencyFormatter.format(
+                      (product?.price?.value *
+                        (product?.price?.discount / 100)) /
+                        100
+                    )}
+                  </strong>
+                </p>
+              </Col>
+            </Row>
+            <hr />
+          </>
+        )}
+        <Row>
+          <Col size={4}>
+            <p>
+              Total
+              {priceData?.end_of_cycle && " for this period"}
+            </p>
+          </Col>
+          <Col size={8}>
+            <p>
+              <strong>{currencyFormatter.format(total)}</strong>
+            </p>
+          </Col>
+        </Row>
+      </>
     );
   }
   return (
@@ -118,20 +191,6 @@ function Summary({ quantity, product, action }: Props) {
             data-testid="name"
             dangerouslySetInnerHTML={{ __html: productName ?? "" }}
           />
-        </Col>
-      </Row>
-      <hr />
-      <Row>
-        <Col size={4}>
-          <p>{units}:</p>
-        </Col>
-        <Col size={8}>
-          <p data-testid="machines">
-            <strong>
-              {quantity} x{" "}
-              {currencyFormatter.format((product?.price?.value ?? 0) / 100)}
-            </strong>
-          </p>
         </Col>
       </Row>
       <hr />
@@ -175,7 +234,28 @@ function Summary({ quantity, product, action }: Props) {
         )}
       </Row>
       <hr />
-      {totalSection}
+      <Row>
+        <Col size={4}>
+          <p>{units}:</p>
+        </Col>
+        <Col size={8}>
+          <p data-testid="machines">
+            <strong>
+              {quantity} x{" "}
+              {currencyFormatter.format((product?.price?.value ?? 0) / 100)}
+            </strong>
+          </p>
+        </Col>
+      </Row>
+      <hr />
+      {!isSummaryLoading ? (
+        totalSection
+      ) : (
+        <>
+          {" "}
+          <Spinner /> Loading&hellip;{" "}
+        </>
+      )}
     </section>
   );
 }

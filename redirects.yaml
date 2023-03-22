@@ -485,6 +485,7 @@ engage/smart-start-whitepaper/?: "/engage/4-ways-to-accelerate-time-to-market-fo
 engage/cloud-pricing-report-2021/?: "/engage/cloud-pricing-report"
 engage/cloud-pricing-report-2022/?: "/engage/cloud-pricing-report"
 engage/vmware-to-charmed-openstack/?: "/engage/from-vmware-to-open-source"
+engage/openstack-made-easy/?: "/engage/openstack-ebook"
 enterprise-canonical-kubernetes/?: "https://assets.ubuntu.com/v1/Enterprise-Canonical-Kubernetes.pdf"
 es/?: "/"
 esm/?: "/security/esm"
@@ -536,6 +537,7 @@ iot/edgex/?: "/internet-of-things/edgex"
 iot/networking/?: "/internet-of-thing/networking"
 iot/smart-city/?: "/internet-of-thing/smart-city"
 iot/management/?: "/internet-of-thing/management"
+iot/nvidia/contact-us/?: "/internet-of-things/nvidia/contact-us"
 IoT/?: "/internet-of-things"
 IOT/?: "/internet-of-things"
 iot-appstore/?: "/internet-of-things/appstore"
@@ -952,6 +954,9 @@ server/guide: /server/docs
 # Blog redirects to fix 500s
 blog/topic/(?P<path>.*): /blog/topics/{path}
 blog/topic: /blog
+
+# Blog slug renames
+/blog/cloud-repatriation: /blog/cloud-repatriation-reasons
 
 # Move /securtiy/cve to /security/cves
 security/cve: /security/cves

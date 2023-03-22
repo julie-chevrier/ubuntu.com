@@ -25,10 +25,9 @@ type Error = {
 
 type Props = {
   setError: React.Dispatch<React.SetStateAction<React.ReactNode>>;
-  setCardValid: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-const UserInfoForm = ({ setError, setCardValid }: Props) => {
+const UserInfoForm = ({ setError }: Props) => {
   const {
     errors,
     touched,
@@ -52,20 +51,24 @@ const UserInfoForm = ({ setError, setCardValid }: Props) => {
       onSaveClick();
     } else {
       setIsEditing(true);
+      setFieldValue("isInfoSaved", false);
     }
   };
 
   useEffect(() => {
-    if (initialValues.defaultPaymentMethod && !isEditing) {
-      setCardValid(true);
-    } else {
-      setCardValid(false);
-    }
+    setFieldValue("isCardValid", !isEditing);
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!initialValues.email || !window.accountId) {
+      setFieldValue("isInfoSaved", true);
+    }
+  }, []);
 
   const onSaveClick = () => {
     checkoutEvent(window.GAFriendlyProduct, "2");
     setIsButtonDisabled(true);
+    setFieldValue("isInfoSaved", true);
 
     paymentMethodMutation.mutate(
       { formData: values },
@@ -278,10 +281,10 @@ const UserInfoForm = ({ setError, setCardValid }: Props) => {
             }}
             onChange={(e) => {
               if (e.complete && !e.error) {
-                setCardValid(true);
+                setFieldValue("isCardValid", true);
                 setCardFieldError(null);
               } else {
-                setCardValid(false);
+                setFieldValue("isCardValid", false);
                 if (e.error) {
                   setCardFieldError(e.error);
                 }
@@ -403,6 +406,7 @@ const UserInfoForm = ({ setError, setCardValid }: Props) => {
                   setFieldValue("city", initialValues.city);
                   setFieldValue("postalCode", initialValues.postalCode);
                   setIsEditing(false);
+                  setFieldValue("isInfoSaved", true);
                 }}
               >
                 Cancel

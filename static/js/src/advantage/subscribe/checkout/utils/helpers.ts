@@ -29,6 +29,9 @@ export function getInitialFormValues(
     Description: false,
     FreeTrial: canTrial ? "useFreeTrial" : "payNow",
     marketplace: product.marketplace,
+    isTaxSaved: !!userInfo?.customerInfo?.address?.country,
+    isCardValid: !!userInfo?.customerInfo?.defaultPaymentMethod,
+    isInfoSaved: !!userInfo?.customerInfo?.defaultPaymentMethod,
   };
 }
 

@@ -3,7 +3,6 @@ A Flask application for ubuntu.com
 """
 
 # Packages
-from distutils.util import strtobool
 import os
 import talisker.requests
 import flask
@@ -108,11 +107,13 @@ from webapp.shop.views import (
     post_anonymised_customer_info,
     get_purchase,
     get_purchase_v2,
-    post_stripe_invoice_id,
+    post_retry_purchase,
     get_last_purchase_ids,
     post_purchase_calculate,
     support,
     checkout,
+    get_shop_status_page,
+    maintenance_check,
 )
 
 from webapp.shop.advantage.views import (
@@ -325,7 +326,6 @@ def context():
         "utm_source": flask.request.args.get("utm_source", ""),
         "CAPTCHA_TESTING_API_KEY": CAPTCHA_TESTING_API_KEY,
         "http_host": flask.request.host,
-        "is_maintenance": strtobool(os.getenv("STORE_MAINTENANCE", "false")),
         "schedule_banner": schedule_banner,
     }
 
@@ -496,8 +496,8 @@ app.add_url_rule(
     methods=["GET"],
 )
 app.add_url_rule(
-    "/account/<tx_type>/<tx_id>/invoices/<invoice_id>",
-    view_func=post_stripe_invoice_id,
+    "/account/purchases/<purchase_id>/retry",
+    view_func=post_retry_purchase,
     methods=["POST"],
 )
 app.add_url_rule("/support", view_func=support)
@@ -532,6 +532,17 @@ app.add_url_rule(
     view_func=post_purchase_calculate,
     methods=["POST"],
 )
+app.add_url_rule(
+    "/pro/status",
+    view_func=get_shop_status_page,
+    methods=["GET"],
+)
+app.add_url_rule(
+    "/pro/maintenance-check",
+    view_func=maintenance_check,
+    methods=["GET"],
+)
+
 # end of shop
 
 app.add_url_rule(
@@ -664,6 +675,11 @@ engage_pages = EngagePages(
 
 app.add_url_rule(
     "/openstack/resources", view_func=openstack_engage(engage_pages)
+)
+# Custom engage page in German
+app.add_url_rule(
+    "/engage/de/warum-openstack",
+    view_func=lambda: flask.render_template("engage/de_why-openstack.html"),
 )
 app.add_url_rule(engage_path, view_func=build_engage_index(engage_pages))
 app.add_url_rule(

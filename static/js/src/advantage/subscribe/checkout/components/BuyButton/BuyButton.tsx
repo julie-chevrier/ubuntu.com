@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useQueryClient } from "react-query";
 import { useFormikContext } from "formik";
 import { getSessionData } from "utils/getSessionData";
 import { ActionButton } from "@canonical/react-components";
@@ -15,18 +16,9 @@ type Props = {
   quantity: number;
   product: Product;
   action: Action;
-  isCardValid: boolean;
-  isTaxSaved: boolean;
 };
 
-const BuyButton = ({
-  setError,
-  quantity,
-  product,
-  action,
-  isCardValid,
-  isTaxSaved,
-}: Props) => {
+const BuyButton = ({ setError, quantity, product, action }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
@@ -38,11 +30,13 @@ const BuyButton = ({
   const { data: userInfo } = useCustomerInfo();
   const useFinishPurchaseMutation = useFinishPurchase();
   const buyAction = values.FreeTrial === "useFreeTrial" ? "trial" : action;
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (
-      !isTaxSaved ||
-      !isCardValid ||
+      !values.isInfoSaved ||
+      !values.isTaxSaved ||
+      !values.isCardValid ||
       !values.email ||
       !values.name ||
       !values.address ||
@@ -63,7 +57,7 @@ const BuyButton = ({
     } else {
       setIsButtonDisabled(false);
     }
-  }, [values, isLoading, isCardValid, isTaxSaved]);
+  }, [values, isLoading]);
 
   const sessionData = {
     gclid: getSessionData("gclid"),
@@ -95,8 +89,12 @@ const BuyButton = ({
       {
         onSuccess: (purchaseId: string) => {
           //start polling
-          setPendingPurchaseID(purchaseId);
-          window.currentPaymentId = purchaseId;
+          if (window.currentPaymentId) {
+            queryClient.invalidateQueries("pendingPurchase");
+          } else {
+            setPendingPurchaseID(purchaseId);
+            window.currentPaymentId = purchaseId;
+          }
         },
         onError: (error) => {
           setIsLoading(false);
